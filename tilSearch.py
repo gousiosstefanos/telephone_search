@@ -2,6 +2,7 @@ import openpyxl, sys, unicodedata
 
 
 def print_menu():
+    # Εμφανίζει το μενού επιλογών αναζήτησης
     print("""
 Επιλέξτε
 1. Αναζήτηση μονάδας
@@ -13,6 +14,7 @@ def print_menu():
 
 
 def get_category():
+    # Διαβάζει την επιλογή του χρήστη και την επιστρέφει αν είναι έγκυρη
     while True:
         category = input().strip()
         if category == "exit":
@@ -23,6 +25,7 @@ def get_category():
 
 
 def normalize_greek(text):
+    # Κανονικοποιεί ελληνικό κείμενο ώστε η αναζήτηση να λειτουργεί ανεξάρτητα από τονισμό και διαλυτικά
     text = str(text).strip().casefold()
     text = unicodedata.normalize("NFD", text)
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
@@ -31,6 +34,7 @@ def normalize_greek(text):
 
 
 def matches_all_words(text, query):
+    # Ελέγχει αν υπάρχει match και επιτρέπει μερική αναζήτηση
     normalized_text = normalize_greek(text)
     words = query.strip().split()
     normalized_words = [normalize_greek(word) for word in words]
@@ -41,11 +45,15 @@ def search_excel(excel_file, category, query=None, unit_query=None, office_query
     found = False
     total_results = 0
 
+    # Διατρέχει όλα τα φύλλα του Excel
     for sheet in excel_file.worksheets:
+        # Τα δεδομένα είναι οργανωμένα σε ζεύγη στηλών: όνομα | τηλέφωνο
+        # Η πρώτη γραμμή κάθε ζεύγους είναι το όνομα της μονάδας
         for col in range(1, sheet.max_column + 1, 2):
             unit = sheet.cell(row=1, column=col).value
 
             if category == "1":
+                # Αναζήτηση βάσει μονάδας: εμφανίζει όλα τα γραφεία της μονάδας
                 if matches_all_words(unit, query):
                     print(f"\n=== {unit} ===")
 
@@ -59,6 +67,7 @@ def search_excel(excel_file, category, query=None, unit_query=None, office_query
                     total_results += 1 
 
             elif category == "2":
+                # Αναζήτηση βάσει γραφείου: εμφανίζει μονάδα, γραφείο και τηλέφωνο
                 for row in range(2, sheet.max_row + 1):
                     name = sheet.cell(row=row, column=col).value
 
@@ -70,6 +79,7 @@ def search_excel(excel_file, category, query=None, unit_query=None, office_query
                         found = True
 
             elif category == "3":
+                # Γενική αναζήτηση: ψάχνει πρώτα στις μονάδες και αν δεν βρει ψάχνει στα γραφεία
                 unit_found = False
 
                 if unit and matches_all_words(unit, query):
@@ -97,6 +107,7 @@ def search_excel(excel_file, category, query=None, unit_query=None, office_query
                             found = True
 
             elif category == "4" and unit:
+                # Συνδυαστική αναζήτηση: φιλτράρει πρώτα βάσει μονάδας και μετά βάσει γραφείου
                 if matches_all_words(unit, unit_query):
                     for row in range(2, sheet.max_row + 1):
                         name = sheet.cell(row=row, column=col).value
@@ -108,6 +119,7 @@ def search_excel(excel_file, category, query=None, unit_query=None, office_query
                             total_results += 1 
                             found = True
             elif category == "5":
+                # Αναζήτηση βάσει τηλεφώνου: επιστρέφει μονάδα και γραφείο που αντιστοιχούν στον αριθμό
                 for row in range(2, sheet.max_row + 1):
                     phone = sheet.cell(row=row, column=col + 1).value
 
@@ -131,6 +143,7 @@ def main():
         category = get_category()
 
         if category == "4":
+            # Η κατηγορία 4 χρειάζεται δύο ξεχωριστά queries
             unit_query = input("Μονάδα: ").strip()
             office_query = input("Γραφείο: ").strip()
             found, total_results = search_excel(excel_file, category, unit_query=unit_query, office_query=office_query)
